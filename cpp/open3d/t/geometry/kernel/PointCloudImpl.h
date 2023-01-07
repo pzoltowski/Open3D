@@ -34,6 +34,7 @@
 #include "open3d/core/ParallelFor.h"
 #include "open3d/core/SizeVector.h"
 #include "open3d/core/Tensor.h"
+#include "open3d/core/linalg/kernel/Matrix.h"
 #include "open3d/core/linalg/kernel/SVD3x3.h"
 #include "open3d/core/nns/NearestNeighborSearch.h"
 #include "open3d/t/geometry/Utility.h"
@@ -163,7 +164,7 @@ void GetPointMaskWithinAABBCPU
          const core::Tensor& max_bound,
          core::Tensor& mask) {
 
-    DISPATCH_DTYPE_TO_TEMPLATE(points.GetDtype(), [&]() {
+    DISPATCH_FLOAT_DTYPE_TO_TEMPLATE(points.GetDtype(), [&]() {
         const scalar_t* points_ptr = points.GetDataPtr<scalar_t>();
         const int64_t n = points.GetLength();
         const scalar_t* min_bound_ptr = min_bound.GetDataPtr<scalar_t>();
@@ -187,15 +188,178 @@ void GetPointMaskWithinAABBCPU
     });
 }
 
+#if defined(__CUDACC__)
+void GetPointMaskWithinOBBCUDA
+#else
+void GetPointMaskWithinOBBCPU
+#endif
+        (const core::Tensor& points,
+         const core::Tensor& center,
+         const core::Tensor& rotation,
+         const core::Tensor& extent,
+         core::Tensor& mask) {
+    const core::Tensor half_extent = extent.Div(2);
+    // Since we will extract 3 rotation axis from matrix and use it inside
+    // kernel, the transpose is needed.
+    const core::Tensor rotation_t = rotation.Transpose(0, 1).Contiguous();
+    const core::Tensor pd = points - center;
+    const int64_t n = points.GetLength();
+
+    DISPATCH_FLOAT_DTYPE_TO_TEMPLATE(points.GetDtype(), [&]() {
+        const scalar_t* pd_ptr = pd.GetDataPtr<scalar_t>();
+        // const scalar_t* center_ptr = center.GetDataPtr<scalar_t>();
+        const scalar_t* rotation_ptr = rotation_t.GetDataPtr<scalar_t>();
+        const scalar_t* half_extent_ptr = half_extent.GetDataPtr<scalar_t>();
+        bool* mask_ptr = mask.GetDataPtr<bool>();
+
+        core::ParallelFor(points.GetDevice(), n,
+                          [=] OPEN3D_DEVICE(int64_t workload_idx) {
+                              int64_t idx = 3 * workload_idx;
+                              if (abs(core::linalg::kernel::dot_3x1(
+                                          pd_ptr + idx, rotation_ptr)) <=
+                                          half_extent_ptr[0] &&
+                                  abs(core::linalg::kernel::dot_3x1(
+                                          pd_ptr + idx, rotation_ptr + 3)) <=
+                                          half_extent_ptr[1] &&
+                                  abs(core::linalg::kernel::dot_3x1(
+                                          pd_ptr + idx, rotation_ptr + 6)) <=
+                                          half_extent_ptr[2]) {
+                                  mask_ptr[workload_idx] = true;
+                              } else {
+                                  mask_ptr[workload_idx] = false;
+                              }
+                          });
+    });
+}
+
+#if defined(__CUDACC__)
+void NormalizeNormalsCUDA
+#else
+void NormalizeNormalsCPU
+#endif
+        (core::Tensor& normals) {
+    const core::Dtype dtype = normals.GetDtype();
+    const int64_t n = normals.GetLength();
+
+    DISPATCH_FLOAT_DTYPE_TO_TEMPLATE(dtype, [&]() {
+        scalar_t* ptr = normals.GetDataPtr<scalar_t>();
+
+        core::ParallelFor(normals.GetDevice(), n,
+                          [=] OPEN3D_DEVICE(int64_t workload_idx) {
+                              int64_t idx = 3 * workload_idx;
+                              scalar_t x = ptr[idx];
+                              scalar_t y = ptr[idx + 1];
+                              scalar_t z = ptr[idx + 2];
+                              scalar_t norm = sqrt(x * x + y * y + z * z);
+                              if (norm > 0) {
+                                  x /= norm;
+                                  y /= norm;
+                                  z /= norm;
+                              }
+                              ptr[idx] = x;
+                              ptr[idx + 1] = y;
+                              ptr[idx + 2] = z;
+                          });
+    });
+}
+
+#if defined(__CUDACC__)
+void OrientNormalsToAlignWithDirectionCUDA
+#else
+void OrientNormalsToAlignWithDirectionCPU
+#endif
+        (core::Tensor& normals, const core::Tensor& direction) {
+    const core::Dtype dtype = normals.GetDtype();
+    const int64_t n = normals.GetLength();
+
+    DISPATCH_FLOAT_DTYPE_TO_TEMPLATE(dtype, [&]() {
+        scalar_t* ptr = normals.GetDataPtr<scalar_t>();
+        const scalar_t* direction_ptr = direction.GetDataPtr<scalar_t>();
+
+        core::ParallelFor(normals.GetDevice(), n,
+                          [=] OPEN3D_DEVICE(int64_t workload_idx) {
+                              int64_t idx = 3 * workload_idx;
+                              scalar_t* normal = ptr + idx;
+                              const scalar_t norm = sqrt(normal[0] * normal[0] +
+                                                         normal[1] * normal[1] +
+                                                         normal[2] * normal[2]);
+                              if (norm == 0.0) {
+                                  normal[0] = direction_ptr[0];
+                                  normal[1] = direction_ptr[1];
+                                  normal[2] = direction_ptr[2];
+                              } else if (core::linalg::kernel::dot_3x1(
+                                                 normal, direction_ptr) < 0) {
+                                  normal[0] *= -1;
+                                  normal[1] *= -1;
+                                  normal[2] *= -1;
+                              }
+                          });
+    });
+}
+
+#if defined(__CUDACC__)
+void OrientNormalsTowardsCameraLocationCUDA
+#else
+void OrientNormalsTowardsCameraLocationCPU
+#endif
+        (const core::Tensor& points,
+         core::Tensor& normals,
+         const core::Tensor& camera) {
+    const core::Dtype dtype = points.GetDtype();
+    const int64_t n = normals.GetLength();
+
+    DISPATCH_FLOAT_DTYPE_TO_TEMPLATE(dtype, [&]() {
+        scalar_t* normals_ptr = normals.GetDataPtr<scalar_t>();
+        const scalar_t* camera_ptr = camera.GetDataPtr<scalar_t>();
+        const scalar_t* points_ptr = points.GetDataPtr<scalar_t>();
+
+        core::ParallelFor(
+                normals.GetDevice(), n,
+                [=] OPEN3D_DEVICE(int64_t workload_idx) {
+                    int64_t idx = 3 * workload_idx;
+                    scalar_t* normal = normals_ptr + idx;
+                    const scalar_t* point = points_ptr + idx;
+                    const scalar_t reference[3] = {camera_ptr[0] - point[0],
+                                                   camera_ptr[1] - point[1],
+                                                   camera_ptr[2] - point[2]};
+                    const scalar_t norm =
+                            sqrt(normal[0] * normal[0] + normal[1] * normal[1] +
+                                 normal[2] * normal[2]);
+                    if (norm == 0.0) {
+                        normal[0] = reference[0];
+                        normal[1] = reference[1];
+                        normal[2] = reference[2];
+                        const scalar_t norm_new = sqrt(normal[0] * normal[0] +
+                                                       normal[1] * normal[1] +
+                                                       normal[2] * normal[2]);
+                        if (norm_new == 0.0) {
+                            normal[0] = 0.0;
+                            normal[1] = 0.0;
+                            normal[2] = 1.0;
+                        } else {
+                            normal[0] /= norm_new;
+                            normal[1] /= norm_new;
+                            normal[2] /= norm_new;
+                        }
+                    } else if (core::linalg::kernel::dot_3x1(normal,
+                                                             reference) < 0) {
+                        normal[0] *= -1;
+                        normal[1] *= -1;
+                        normal[2] *= -1;
+                    }
+                });
+    });
+}
+
 template <typename scalar_t>
 OPEN3D_HOST_DEVICE void GetCoordinateSystemOnPlane(const scalar_t* query,
                                                    scalar_t* u,
                                                    scalar_t* v) {
-    // Unless the x and y coords are both close to zero, we can simply take (
-    // -y, x, 0 ) and normalize it.
-    // If both x and y are close to zero, then the vector is close to the
-    // z-axis, so it's far from colinear to the x-axis for instance. So we
-    // take the crossed product with (1,0,0) and normalize it.
+    // Unless the x and y coords are both close to zero, we can simply take
+    // ( -y, x, 0 ) and normalize it. If both x and y are close to zero,
+    // then the vector is close to the z-axis, so it's far from colinear to
+    // the x-axis for instance. So we take the crossed product with (1,0,0)
+    // and normalize it.
     if (!(abs(query[0] - query[2]) < 1e-6) ||
         !(abs(query[1] - query[2]) < 1e-6)) {
         const scalar_t norm2_inv =
@@ -279,7 +443,6 @@ void ComputeBoundaryPointsCPU
          const core::Tensor& counts,
          core::Tensor& mask,
          double angle_threshold) {
-
     const int nn_size = indices.GetShape()[1];
 
     DISPATCH_FLOAT_DTYPE_TO_TEMPLATE(points.GetDtype(), [&]() {

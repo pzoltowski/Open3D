@@ -259,6 +259,21 @@ void RemoveRadiusOutliers(benchmark::State& state,
     }
 }
 
+void RemoveStatisticalOutliers(benchmark::State& state,
+                               const core::Device& device,
+                               const int nb_neighbors) {
+    t::geometry::PointCloud pcd;
+    t::io::ReadPointCloud(path, pcd, {"auto", false, false, false});
+
+    pcd = pcd.To(device).VoxelDownSample(0.01);
+
+    // Warm up.
+    pcd.RemoveStatisticalOutliers(nb_neighbors, 1.0);
+    for (auto _ : state) {
+        pcd.RemoveStatisticalOutliers(nb_neighbors, 1.0);
+    }
+}
+
 void ComputeBoundaryPoints(benchmark::State& state,
                            const core::Device& device,
                            const core::Dtype& dtype,
@@ -277,6 +292,21 @@ void ComputeBoundaryPoints(benchmark::State& state,
 
     for (auto _ : state) {
         pcd.ComputeBoundaryPoints(radius, max_nn);
+    }
+}
+
+void LegacyRemoveStatisticalOutliers(benchmark::State& state,
+                                     const int nb_neighbors) {
+    open3d::geometry::PointCloud pcd;
+    open3d::io::ReadPointCloud(path, pcd, {"auto", false, false, false});
+
+    auto pcd_down = pcd.VoxelDownSample(0.01);
+
+    // Warm up.
+    pcd_down->RemoveStatisticalOutliers(nb_neighbors, 1.0);
+
+    for (auto _ : state) {
+        pcd_down->RemoveStatisticalOutliers(nb_neighbors, 1.0);
     }
 }
 
@@ -313,12 +343,46 @@ void CropByAxisAlignedBox(benchmark::State& state, const core::Device& device) {
     }
 }
 
+void CropByOrientedBox(benchmark::State& state, const core::Device& device) {
+    t::geometry::PointCloud pcd;
+    t::io::ReadPointCloud(path, pcd, {"auto", false, false, false});
+
+    pcd = pcd.To(device);
+    t::geometry::OrientedBoundingBox box(
+            core::Tensor::Init<float>({0, 0, 0}, device),
+            core::Tensor::Eye(3, core::Float32, device),
+            core::Tensor::Init<float>({1, 1, 1}, device));
+
+    // Warm up.
+    pcd.Crop(box);
+
+    for (auto _ : state) {
+        pcd.Crop(box);
+    }
+}
+
 void LegacyCropByAxisAlignedBox(benchmark::State& state, const int no_use) {
     open3d::geometry::PointCloud pcd;
     open3d::io::ReadPointCloud(path, pcd, {"auto", false, false, false});
 
     open3d::geometry::AxisAlignedBoundingBox box(Eigen::Vector3d(0, 0, 0),
                                                  Eigen::Vector3d(1, 1, 1));
+
+    // Warm up.
+    pcd.Crop(box);
+
+    for (auto _ : state) {
+        pcd.Crop(box);
+    }
+}
+
+void LegacyCropByOrientedBox(benchmark::State& state, const int no_use) {
+    open3d::geometry::PointCloud pcd;
+    open3d::io::ReadPointCloud(path, pcd, {"auto", false, false, false});
+
+    open3d::geometry::OrientedBoundingBox box(Eigen::Vector3d(0, 0, 0),
+                                              Eigen::Matrix3d::Identity(),
+                                              Eigen::Vector3d(1, 1, 1));
 
     // Warm up.
     pcd.Crop(box);
@@ -546,7 +610,11 @@ BENCHMARK_CAPTURE(LegacyEstimateNormals,
 BENCHMARK_CAPTURE(
         RemoveRadiusOutliers, CPU[50 | 0.05], core::Device("CPU:0"), 50, 0.03)
         ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(RemoveStatisticalOutliers, CPU[30], core::Device("CPU:0"), 30)
+        ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(CropByAxisAlignedBox, CPU, core::Device("CPU:0"))
+        ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(CropByOrientedBox, CPU, core::Device("CPU:0"))
         ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(ComputeBoundaryPoints,
                   CPU Float32,
@@ -566,7 +634,14 @@ BENCHMARK_CAPTURE(ComputeBoundaryPoints,
 BENCHMARK_CAPTURE(
         RemoveRadiusOutliers, CUDA[50 | 0.05], core::Device("CUDA:0"), 50, 0.03)
         ->Unit(benchmark::kMillisecond);
-BENCHMARK_CAPTURE(CropByAxisAlignedBox, CPU, core::Device("CUDA:0"))
+BENCHMARK_CAPTURE(CropByAxisAlignedBox, CUDA, core::Device("CUDA:0"))
+        ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(CropByOrientedBox, CUDA, core::Device("CUDA:0"))
+        ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(RemoveStatisticalOutliers,
+                  CUDA[30],
+                  core::Device("CUDA:0"),
+                  30)
         ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(ComputeBoundaryPoints,
                   CUDA Float32,
@@ -586,7 +661,11 @@ BENCHMARK_CAPTURE(ComputeBoundaryPoints,
 
 BENCHMARK_CAPTURE(LegacyRemoveRadiusOutliers, Legacy[50 | 0.05], 50, 0.03)
         ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(LegacyRemoveStatisticalOutliers, Legacy[30], 30)
+        ->Unit(benchmark::kMillisecond);
 BENCHMARK_CAPTURE(LegacyCropByAxisAlignedBox, Legacy, 1)
+        ->Unit(benchmark::kMillisecond);
+BENCHMARK_CAPTURE(LegacyCropByOrientedBox, Legacy, 1)
         ->Unit(benchmark::kMillisecond);
 
 }  // namespace geometry

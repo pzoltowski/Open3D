@@ -2009,7 +2009,7 @@ TEST_P(TensorPermuteDevices, ReduceSumLargeArray) {
     int64_t max_size = *std::max_element(sizes.begin(), sizes.end());
     std::vector<int> vals(max_size);
     std::transform(vals.begin(), vals.end(), vals.begin(), [](int x) -> int {
-        return utility::random::UniformIntGenerator(0, 3)();
+        return utility::random::UniformIntGenerator<int>(0, 3)();
     });
 
     for (int64_t size : sizes) {
@@ -2349,6 +2349,21 @@ TEST_P(TensorPermuteDevices, Neg) {
     // Also works for int.
     src = core::Tensor(std::vector<int>{-1, 0, 2}, {1, 3}, core::Int32, device);
     dst = src.Neg();
+    EXPECT_EQ(dst.ToFlatVector<int>(), std::vector<int>({1, 0, -2}));
+}
+
+TEST_P(TensorPermuteDevices, UnaryMinus) {
+    core::Device device = GetParam();
+
+    std::vector<float> dst_vals{2, 1, 0, -1, -2, -3};
+    core::Tensor src =
+            core::Tensor::Init<float>({{-2, -1, 0}, {1, 2, 3}}, device);
+    core::Tensor dst = -src;
+    EXPECT_EQ(dst.ToFlatVector<float>(), dst_vals);
+
+    // Also works for int.
+    src = core::Tensor(std::vector<int>{-1, 0, 2}, {1, 3}, core::Int32, device);
+    dst = -src;
     EXPECT_EQ(dst.ToFlatVector<int>(), std::vector<int>({1, 0, -2}));
 }
 

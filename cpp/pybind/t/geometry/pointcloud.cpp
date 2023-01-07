@@ -127,6 +127,8 @@ The attributes of the point cloud have different levels::
                  "map_keys_to_tensors"_a)
             .def("__repr__", &PointCloud::ToString);
 
+    py::detail::bind_copy_functions<PointCloud>(pointcloud);
+
     // Pickle support.
     pointcloud.def(py::pickle(
             [](const PointCloud& pcd) {
@@ -249,21 +251,54 @@ The attributes of the point cloud have different levels::
                    "by selecting the farthest point from previous selected "
                    "points iteratively",
                    "num_samples"_a);
-    pointcloud.def("remove_radius_outliers", &PointCloud::RemoveRadiusOutliers,
-                   "nb_points"_a, "search_radius"_a,
-                   "Remove points that have less than nb_points neighbors in a "
-                   "sphere of a given search radius.");
+    pointcloud.def(
+            "remove_radius_outliers", &PointCloud::RemoveRadiusOutliers,
+            "nb_points"_a, "search_radius"_a,
+            R"(Remove points that have less than nb_points neighbors in a 
+sphere of a given search radius. 
+
+Args:
+    nb_points. Number of neighbor points required within the radius.
+    search_radius. Radius of the sphere.
+
+Return:
+    Tuple of filtered point cloud and boolean mask tensor for selected values
+    w.r.t. input point cloud.)");
+    pointcloud.def(
+            "remove_statistical_outliers",
+            &PointCloud::RemoveStatisticalOutliers, "nb_neighbors"_a,
+            "std_ratio"_a,
+            R"(Remove points that are further away from their \p nb_neighbor
+neighbors in average. This function is not recommended to use on GPU. 
+
+Args:
+    nb_neighbors. Number of neighbors around the target point.
+    std_ratio. Standard deviation ratio.
+
+Return:
+    Tuple of filtered point cloud and boolean mask tensor for selected values
+    w.r.t. input point cloud.)");
     pointcloud.def("remove_duplicated_points",
                    &PointCloud::RemoveDuplicatedPoints,
                    "Remove duplicated points and there associated attributes.");
     pointcloud.def(
             "remove_non_finite_points", &PointCloud::RemoveNonFinitePoints,
             "remove_nan"_a = true, "remove_infinite"_a = true,
-            "Remove all points from the point cloud that have a nan entry, or "
-            "infinite value. It also removes the corresponding attributes.");
+            R"(Remove all points from the point cloud that have a nan entry, or 
+infinite value. It also removes the corresponding attributes. 
+    
+Args:
+    remove_nan. Remove NaN values from the PointCloud.
+    remove_infinite. Remove infinite values from the PointCloud.
+
+Return:
+    Tuple of filtered point cloud and boolean mask tensor for selected values
+    w.r.t. input point cloud.)");
     pointcloud.def("paint_uniform_color", &PointCloud::PaintUniformColor,
                    "color"_a, "Assigns uniform color to the point cloud.");
 
+    pointcloud.def("normalize_normals", &PointCloud::NormalizeNormals,
+                   "Normalize point normals to length 1.");
     pointcloud.def(
             "estimate_normals", &PointCloud::EstimateNormals,
             py::call_guard<py::gil_scoped_release>(), py::arg("max_nn") = 30,
@@ -274,6 +309,21 @@ The attributes of the point cloud have different levels::
             "max_nn parameter is provided, Radius search (Not recommended to "
             "use on GPU) if only radius is provided and Hybrid Search "
             "(Recommended) if radius parameter is also provided.");
+    pointcloud.def("orient_normals_to_align_with_direction",
+                   &PointCloud::OrientNormalsToAlignWithDirection,
+                   "Function to orient the normals of a point cloud.",
+                   "orientation_reference"_a = core::Tensor::Init<float>(
+                           {0, 0, 1}, core::Device("CPU:0")));
+    pointcloud.def("orient_normals_towards_camera_location",
+                   &PointCloud::OrientNormalsTowardsCameraLocation,
+                   "Function to orient the normals of a point cloud.",
+                   "camera_location"_a = core::Tensor::Zeros(
+                           {3}, core::Float32, core::Device("CPU:0")));
+    pointcloud.def("orient_normals_consistent_tangent_plane",
+                   &PointCloud::OrientNormalsConsistentTangentPlane,
+                   "Function to orient the normals with respect to consistent "
+                   "tangent planes.",
+                   "k"_a);
     pointcloud.def(
             "estimate_color_gradients", &PointCloud::EstimateColorGradients,
             py::call_guard<py::gil_scoped_release>(), py::arg("max_nn") = 30,
@@ -427,7 +477,7 @@ Example:
                                                  ransac_n=3,
                                                  num_iterations=1000)
         inlier_cloud = pcd.select_by_index(inliers)
-        inlier_cloud.paint_uniform_color([1.0, 0, 0])
+        inlier_cloud = inlier_cloud.paint_uniform_color([1.0, 0, 0])
         outlier_cloud = pcd.select_by_index(inliers, invert=True)
         o3d.visualization.draw([inlier_cloud, outlier_cloud]))");
     pointcloud.def(
@@ -488,9 +538,21 @@ Example:
             "get_axis_aligned_bounding_box",
             &PointCloud::GetAxisAlignedBoundingBox,
             "Create an axis-aligned bounding box from attribute 'positions'.");
-    pointcloud.def("crop", &PointCloud::Crop,
+    pointcloud.def(
+            "get_oriented_bounding_box", &PointCloud::GetOrientedBoundingBox,
+            "Create an oriented bounding box from attribute 'positions'.");
+    pointcloud.def("crop",
+                   (PointCloud(PointCloud::*)(const AxisAlignedBoundingBox&,
+                                              bool) const) &
+                           PointCloud::Crop,
                    "Function to crop pointcloud into output pointcloud.",
                    "aabb"_a, "invert"_a = false);
+    pointcloud.def("crop",
+                   (PointCloud(PointCloud::*)(const OrientedBoundingBox&, bool)
+                            const) &
+                           PointCloud::Crop,
+                   "Function to crop pointcloud into output pointcloud.",
+                   "obb"_a, "invert"_a = false);
 
     docstring::ClassMethodDocInject(m, "PointCloud", "estimate_normals",
                                     map_shared_argument_docstrings);
@@ -540,12 +602,30 @@ Example:
               "Color of the pointcloud. Floating color values are clipped "
               "between 0.0 and 1.0."}});
     docstring::ClassMethodDocInject(
+            m, "PointCloud", "orient_normals_to_align_with_direction",
+            {{"orientation_reference",
+              "Normals are oriented with respect to orientation_reference."}});
+    docstring::ClassMethodDocInject(
+            m, "PointCloud", "orient_normals_towards_camera_location",
+            {{"camera_location",
+              "Normals are oriented with towards the camera_location."}});
+    docstring::ClassMethodDocInject(
+            m, "PointCloud", "orient_normals_consistent_tangent_plane",
+            {{"k",
+              "Number of k nearest neighbors used in constructing the "
+              "Riemannian graph used to propagate normal orientation."}});
+    docstring::ClassMethodDocInject(
             m, "PointCloud", "crop",
             {{"aabb", "AxisAlignedBoundingBox to crop points."},
              {"invert",
               "Crop the points outside of the bounding box or inside of the "
               "bounding box."}});
-
+    docstring::ClassMethodDocInject(
+            m, "PointCloud", "crop",
+            {{"obb", "OrientedBoundingBox to crop points."},
+             {"invert",
+              "Crop the points outside of the bounding box or inside of the "
+              "bounding box."}});
     pointcloud.def("extrude_rotation", &PointCloud::ExtrudeRotation, "angle"_a,
                    "axis"_a, "resolution"_a = 16, "translation"_a = 0.0,
                    "capping"_a = true,
