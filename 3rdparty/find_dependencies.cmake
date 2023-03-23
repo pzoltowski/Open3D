@@ -479,7 +479,7 @@ open3d_find_package_3rdparty_library(3rdparty_threads
     PACKAGE Threads
     TARGETS Threads::Threads
 )
-
+if (NOT IOS)
 # Assimp
 if(USE_SYSTEM_ASSIMP)
     open3d_find_package_3rdparty_library(3rdparty_assimp
@@ -502,6 +502,8 @@ if(NOT USE_SYSTEM_ASSIMP)
 else()
     list(APPEND Open3D_3RDPARTY_PRIVATE_TARGETS_FROM_SYSTEM Open3D::3rdparty_assimp)
 endif()
+endif()
+set(USE_SYSTEM_ASSIMP OFF)
 
 # OpenMP
 if(WITH_OPENMP)
