@@ -298,10 +298,10 @@ Eigen::Vector3d UnpackASCIIPCDColor(const char *data_ptr,
         std::uint8_t data[4] = {0, 0, 0, 0};
         char *end;
         if (type == 'I') {
-            std::int32_t value = std::strtol(data_ptr, &end, 0);
+            std::int32_t value = static_cast<int32_t>(std::strtol(data_ptr, &end, 0));
             memcpy(data, &value, 4);
         } else if (type == 'U') {
-            std::uint32_t value = std::strtoul(data_ptr, &end, 0);
+            std::uint32_t value = static_cast<u_int32_t>(std::strtoul(data_ptr, &end, 0));
             memcpy(data, &value, 4);
         } else if (type == 'F') {
             float value = std::strtof(data_ptr, &end);

@@ -18,11 +18,20 @@
 #include "pybind/pipelines/pipelines.h"
 #include "pybind/t/t.h"
 #include "pybind/utility/utility.h"
+#include <TargetConditionals.h>
+#if !TARGET_OS_IOS
 #include "pybind/visualization/visualization.h"
+#endif
 
 namespace open3d {
 
+namespace docstring {
+void init_static_property();
+}
+
 PYBIND11_MODULE(pybind, m) {
+    docstring::init_static_property();
+    
     utility::Logger::GetInstance().SetPrintFunction([](const std::string& msg) {
         py::gil_scoped_acquire acquire;
         py::print(msg);
@@ -44,11 +53,15 @@ PYBIND11_MODULE(pybind, m) {
     core::pybind_core(m);
     data::pybind_data(m);
     geometry::pybind_geometry(m);
+#if !TARGET_OS_IOS
     t::pybind_t(m);
+#endif
     ml::pybind_ml(m);
     io::pybind_io(m);
     pipelines::pybind_pipelines(m);
+#if !TARGET_OS_IOS
     visualization::pybind_visualization(m);
+#endif
 
     // pybind11 will internally manage the lifetime of default arguments for
     // function bindings. Since these objects will live longer than the memory

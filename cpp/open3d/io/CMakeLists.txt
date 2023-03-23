@@ -36,6 +36,7 @@ target_sources(io PRIVATE
     file_format/FileXYZRGB.cpp
 )
 
+if (NOT IOS)
 target_sources(io PRIVATE
     rpc/BufferConnection.cpp
     rpc/Connection.cpp
@@ -46,6 +47,7 @@ target_sources(io PRIVATE
     rpc/ZMQContext.cpp
     rpc/ZMQReceiver.cpp
 )
+endif()
 
 if (BUILD_AZURE_KINECT)
     target_sources(io PRIVATE

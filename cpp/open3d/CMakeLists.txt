@@ -66,8 +66,10 @@ add_subdirectory(t/geometry)
 add_subdirectory(t/io)
 add_subdirectory(t/pipelines)
 add_subdirectory(utility)
-add_subdirectory(visualization)
-
+if (NOT IOS)
+    add_subdirectory(visualization)
+    set(VISUALIZATION_OBJECTS "$<TARGET_OBJECTS:visualization>")
+endif()
 if (BUILD_GUI)
     add_subdirectory(visualization/gui)
 endif()
@@ -96,7 +98,7 @@ open3d_ispc_target_sources_TARGET_OBJECTS(Open3D PRIVATE
     tpipelines
     tpipelines_kernel
     utility
-    visualization
+#    visualization
 )
 
 if (BUILD_GUI)

@@ -1,0 +1,9 @@
+IPHONEOS_DEPLOYMENT_TARGET = 12.3
+
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) PNG_ARM_NEON_OPT=0 sgemm_=sgemm_workaround
+
+HEADER_SEARCH_PATHS = $(inherited) ios/LAPACKE-iOS/LAPACKE/include
+
+OTHER_CPLUSPLUSFLAGS = $(inherited) -Wno-error=shorten-64-to-32
+
+BITCODE_GENERATION_MODE=bitcode

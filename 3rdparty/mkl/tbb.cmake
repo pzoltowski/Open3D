@@ -41,6 +41,8 @@ ExternalProject_Add(
         -DTBB_BUILD_SHARED=OFF
         -DTBB_BUILD_STATIC=ON
         -DTBB_BUILD_TESTS=OFF
+        -DCMAKE_CXX_FLAGS=-stdlib=libc++
+        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DTBB_INSTALL_ARCHIVE_DIR=${Open3D_INSTALL_LIB_DIR}
         -DTBB_CMAKE_PACKAGE_INSTALL_DIR=${Open3D_INSTALL_LIB_DIR}/cmake/tbb
         ${ExternalProject_CMAKE_ARGS_hidden}

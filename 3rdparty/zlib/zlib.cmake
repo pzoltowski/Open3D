@@ -23,6 +23,7 @@ ExternalProject_Add(
         # zlib needs visiible symbols for examples. Disabling example building causes
         # assember error in GPU CI. zlib symbols are hidden during linking.
         ${ExternalProject_CMAKE_ARGS}
+        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
     BUILD_BYPRODUCTS
         <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}${lib_name}${CMAKE_STATIC_LIBRARY_SUFFIX}
         <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}${lib_name}d${CMAKE_STATIC_LIBRARY_SUFFIX}

@@ -97,6 +97,8 @@
 #include "open3d/utility/ProgressReporters.h"
 #include "open3d/utility/Random.h"
 #include "open3d/utility/Timer.h"
+#include <TargetConditionals.h>
+#if !TARGET_OS_IOS
 #include "open3d/visualization/gui/Application.h"
 #include "open3d/visualization/gui/Button.h"
 #include "open3d/visualization/gui/Checkbox.h"
@@ -133,6 +135,7 @@
 #include "open3d/visualization/visualizer/VisualizerWithEditing.h"
 #include "open3d/visualization/visualizer/VisualizerWithKeyCallback.h"
 #include "open3d/visualization/visualizer/VisualizerWithVertexSelection.h"
+#endif
 
 // clang-format off
 @BUILD_AZURE_KINECT_COMMENT@#include "open3d/io/sensor/azure_kinect/AzureKinectRecorder.h"

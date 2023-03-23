@@ -1,0 +1,25 @@
+From 232f5384fac513b0feaad4cc86dc078efd785120 Mon Sep 17 00:00:00 2001
+From: Changbeom Ahn <kewlbear@gmail.com>
+Date: Fri, 26 Feb 2021 10:03:53 +0900
+Subject: [PATCH] fix for iOS
+
+---
+ Src/MyMiscellany.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Src/MyMiscellany.h b/Src/MyMiscellany.h
+index 97af7a8..5f8b544 100644
+--- a/Src/MyMiscellany.h
++++ b/Src/MyMiscellany.h
+@@ -282,7 +282,7 @@ struct StackTracer
+ 
+ 			char syscom[1024];
+ 			sprintf( syscom , "addr2line %p -e %s" , trace[i] , exec ); //last parameter is the name of this app
+-			if( !system( syscom ) ){}
++//			if( !system( syscom ) ){}
+ 
+ 			// find parantheses and +address offset surrounding mangled name
+ 			for( char *p=messages[i] ; *p ; ++p )
+-- 
+2.24.3 (Apple Git-128)
+

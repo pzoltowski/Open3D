@@ -1,0 +1,24 @@
+From d18481aec6e45d554180971cfa2b405374dc4db2 Mon Sep 17 00:00:00 2001
+From: Changbeom Ahn <kewlbear@gmail.com>
+Date: Sun, 23 Jan 2022 23:14:26 +0900
+Subject: [PATCH] fix for iOS
+
+---
+ CMakeLists.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b304c9c40..0e2135d8c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -237,6 +237,7 @@ IF(DEFINED EMBREE_ISA_AVX512SKX)
+ ENDIF()
+ 
+ TRY_COMPILE(COMPILER_SUPPORTS_ARM_NEON ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/common/cmake/check_arm_neon.cpp)
++set(COMPILER_SUPPORTS_ARM_NEON TRUE)
+ 
+ IF (CMAKE_CXX_COMPILER_WRAPPER STREQUAL "CrayPrgEnv")
+   SET(EMBREE_MAX_ISA "DEFAULT" CACHE STRING "Selects highest ISA to support.")
+-- 
+2.32.0 (Apple Git-132)
+

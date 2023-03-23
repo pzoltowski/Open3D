@@ -21,8 +21,11 @@
 #include "open3d/utility/FileSystem.h"
 #include "open3d/utility/Logging.h"
 #include "open3d/utility/ProgressReporters.h"
+#include <TargetConditionals.h>
+#if !TARGET_OS_IOS
 #include "open3d/visualization/rendering/MaterialRecord.h"
 #include "open3d/visualization/rendering/Model.h"
+#endif
 
 #define AI_MATKEY_CLEARCOAT_THICKNESS "$mat.clearcoatthickness", 0, 0
 #define AI_MATKEY_CLEARCOAT_ROUGHNESS "$mat.clearcoatroughness", 0, 0
@@ -286,6 +289,7 @@ bool ReadTriangleMeshUsingASSIMP(
     return true;
 }
 
+#if !TARGET_OS_IOS
 bool ReadModelUsingAssimp(const std::string& filename,
                           visualization::rendering::TriangleMeshModel& model,
                           const ReadTriangleModelOptions& params /*={}*/) {
@@ -453,6 +457,7 @@ bool ReadModelUsingAssimp(const std::string& filename,
 
     return true;
 }
+#endif
 
 }  // namespace io
 }  // namespace open3d

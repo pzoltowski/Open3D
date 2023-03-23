@@ -598,6 +598,7 @@ else()
     list(APPEND Open3D_3RDPARTY_PRIVATE_TARGETS_FROM_SYSTEM Open3D::3rdparty_nanoflann)
 endif()
 
+if(NOT IOS)
 # GLEW
 if(USE_SYSTEM_GLEW)
     open3d_find_package_3rdparty_library(3rdparty_glew
@@ -695,6 +696,8 @@ else()
 endif()
 if(TARGET Open3D::3rdparty_x11)
     target_link_libraries(3rdparty_glfw INTERFACE Open3D::3rdparty_x11)
+endif()
+list(APPEND Open3D_3RDPARTY_HEADER_TARGETS Open3D::3rdparty_glfw)
 endif()
 
 # TurboJPEG
@@ -928,6 +931,7 @@ open3d_build_3rdparty_library(3rdparty_rply DIRECTORY rply
 list(APPEND Open3D_3RDPARTY_PRIVATE_TARGETS_FROM_CUSTOM Open3D::3rdparty_rply)
 
 # tinyfiledialogs
+if(NOT IOS)
 open3d_build_3rdparty_library(3rdparty_tinyfiledialogs DIRECTORY tinyfiledialogs
     SOURCES
         include/tinyfiledialogs/tinyfiledialogs.c
@@ -935,6 +939,7 @@ open3d_build_3rdparty_library(3rdparty_tinyfiledialogs DIRECTORY tinyfiledialogs
         include/
 )
 list(APPEND Open3D_3RDPARTY_PRIVATE_TARGETS_FROM_CUSTOM Open3D::3rdparty_tinyfiledialogs)
+endif()
 
 # tinygltf
 if(USE_SYSTEM_TINYGLTF)
@@ -1141,6 +1146,24 @@ endif()
 if (BUILD_BENCHMARKS)
     include(${Open3D_3RDPARTY_DIR}/benchmark/benchmark.cmake)
     # benchmark and benchmark_main will automatically become available.
+endif()
+
+# Headless rendering
+if (NOT IOS)
+if (ENABLE_HEADLESS_RENDERING)
+    open3d_find_package_3rdparty_library(3rdparty_opengl
+        REQUIRED
+        PACKAGE OSMesa
+        INCLUDE_DIRS OSMESA_INCLUDE_DIR
+        LIBRARIES OSMESA_LIBRARY
+    )
+else()
+    open3d_find_package_3rdparty_library(3rdparty_opengl
+        PACKAGE OpenGL
+        TARGETS OpenGL::GL
+    )
+endif()
+list(APPEND Open3D_3RDPARTY_PRIVATE_TARGETS Open3D::3rdparty_opengl)
 endif()
 
 # imgui
@@ -1363,6 +1386,7 @@ if(BUILD_GUI)
     endif() # if(NOT USE_SYSTEM_FILAMENT)
 endif()
 
+if (NOT IOS)
 # Headless rendering
 if (ENABLE_HEADLESS_RENDERING)
     open3d_find_package_3rdparty_library(3rdparty_opengl
@@ -1379,6 +1403,7 @@ else()
     set(USE_SYSTEM_OPENGL ON)
 endif()
 list(APPEND Open3D_3RDPARTY_HEADER_TARGETS_FROM_SYSTEM Open3D::3rdparty_opengl)
+endif()
 
 # CPU Rendering
 if(BUILD_GUI AND UNIX AND NOT APPLE)
@@ -1398,6 +1423,7 @@ if(BUILD_GUI AND UNIX AND NOT APPLE)
     message(STATUS "MESA_CPU_GL_LIBRARY: ${MESA_CPU_GL_LIBRARY}")
 endif()
 
+if (NOT IOS)
 # RPC interface
 # zeromq
 if(USE_SYSTEM_ZEROMQ)
@@ -1451,7 +1477,9 @@ if(NOT USE_SYSTEM_MSGPACK)
 else()
     list(APPEND Open3D_3RDPARTY_PRIVATE_TARGETS_FROM_SYSTEM Open3D::3rdparty_msgpack)
 endif()
+endif()
 
+if(NOT IOS)
 # VTK
 if(USE_SYSTEM_VTK)
     open3d_find_package_3rdparty_library(3rdparty_vtk
@@ -1490,6 +1518,7 @@ if(NOT USE_SYSTEM_VTK)
     endif()
 endif()
 list(APPEND Open3D_3RDPARTY_PRIVATE_TARGETS_FROM_CUSTOM Open3D::3rdparty_vtk)
+endif()
 
 # UVAtlas
 include(${Open3D_3RDPARTY_DIR}/uvatlas/uvatlas.cmake)

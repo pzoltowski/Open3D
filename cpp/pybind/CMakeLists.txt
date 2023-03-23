@@ -6,7 +6,7 @@ endif()
 set(PYTHON_VERSION "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
 
 
-pybind11_add_module(pybind)
+pybind11_add_module(pybind NO_EXTRAS)
 
 add_subdirectory(camera)
 add_subdirectory(core)
@@ -20,7 +20,9 @@ add_subdirectory(t/geometry)
 add_subdirectory(t/io)
 add_subdirectory(t/pipelines)
 add_subdirectory(utility)
+if(NOT IOS)
 add_subdirectory(visualization)
+endif()
 
 target_sources(pybind PRIVATE
     docstring.cpp

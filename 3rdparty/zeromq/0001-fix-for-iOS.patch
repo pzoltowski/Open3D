@@ -1,0 +1,34 @@
+From 255b255ce48efac249861210ac7a977879c61de6 Mon Sep 17 00:00:00 2001
+From: Changbeom Ahn <kewlbear@gmail.com>
+Date: Sun, 23 Jan 2022 11:55:50 +0900
+Subject: [PATCH] fix for iOS
+
+---
+ CMakeLists.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e92141d0..01877917 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1344,7 +1344,7 @@ if(MSVC)
+ else()
+   # avoid building everything twice for shared + static only on *nix, as Windows needs different preprocessor defines in
+   # static builds
+-  if(NOT MINGW)
++  if(NOT MINGW AND IOS)
+     add_library(objects OBJECT ${sources})
+     set_property(TARGET objects PROPERTY POSITION_INDEPENDENT_CODE ON)
+     target_include_directories(
+@@ -1378,7 +1378,7 @@ else()
+   endif()
+ 
+   if(BUILD_STATIC)
+-    if(MINGW)
++    if(MINGW OR IOS)
+       add_library(libzmq-static STATIC ${sources} ${public_headers} ${html-docs} ${readme-docs} ${zmq-pkgconfig}
+                                        ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
+     else()
+-- 
+2.32.0 (Apple Git-132)
+

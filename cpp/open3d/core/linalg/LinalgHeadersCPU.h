@@ -16,7 +16,12 @@
 #ifdef USE_BLAS
 #define OPEN3D_CPU_LINALG_INT int32_t
 #define lapack_int int32_t
+#include <TargetConditionals.h>
+#if !TARGET_OS_IOS
 #include <cblas.h>
+#else
+#include <Accelerate/Accelerate.h>
+#endif
 #include <lapacke.h>
 #else
 #include <mkl.h>

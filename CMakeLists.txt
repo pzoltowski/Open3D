@@ -13,6 +13,7 @@ cmake_minimum_required(VERSION 3.20)
 # - detect IntelLLVM compiler for SYCL
 
 if (APPLE)
+cmake_policy(SET CMP0114 NEW)
 set (CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING
     "Minimum OS X deployment version" FORCE)
 endif()
@@ -48,8 +49,8 @@ option(BUILD_BENCHMARKS           "Build the micro benchmarks"               OFF
 option(BUILD_PYTHON_MODULE        "Build the python module"                  ON )
 option(BUILD_CUDA_MODULE          "Build the CUDA module"                    OFF)
 option(BUILD_COMMON_CUDA_ARCHS    "Build for common CUDA GPUs (for release)" OFF)
-option(ENABLE_CACHED_CUDA_MANAGER "Enable cached CUDA memory manager"        ON )
-if(NOT LINUX_AARCH64 AND NOT APPLE_AARCH64)
+option(ENABLE_CACHED_CUDA_MANAGER "Enable cached CUDA memory manager"        OFF )
+if(NOT LINUX_AARCH64 AND NOT APPLE_AARCH64 AND NOT IOS)
     option(BUILD_ISPC_MODULE      "Build the ISPC module"                    ON )
 else()
     option(BUILD_ISPC_MODULE      "Build the ISPC module"                    OFF)
@@ -318,18 +319,18 @@ if(NOT DEFINED Python3_FIND_REGISTRY)
     set(Python3_FIND_REGISTRY NEVER)
 endif()
 # Requires Python 3.6+
-find_package(Python3 3.6
+find_package(Python3 3.6...<3.10
              COMPONENTS Interpreter Development)
-if (Python3_FOUND)
+#if (Python3_FOUND)
     # Setup PYTHON_EXECUTABLE for 3rdparty modules
     # which still use the deprecated find_package(PythonInterp)
     set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE} CACHE STRING
         "Deprecated path to the Python executable (for 3rdparty only)" FORCE)
-else()
-    if (BUILD_PYTHON_MODULE)
-        message(FATAL_ERROR "BUILD_PYTHON_MODULE=ON requires Python >= 3.6. Please ensure it is in PATH.")
-    endif()
-endif()
+#else()
+#    if (BUILD_PYTHON_MODULE)
+#        message(FATAL_ERROR "BUILD_PYTHON_MODULE=ON requires Python 3.6-3.9. Please ensure it is in PATH.")
+#    endif()
+#endif()
 
 # npm version has to be MAJOR.MINOR.PATCH
 string(CONCAT PROJECT_VERSION_THREE_NUMBER "${OPEN3D_VERSION_MAJOR}"
@@ -378,7 +379,21 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 # Add -fPIC for library and -fPIE for executable to compiler and linker. Does not add -pie !
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Explicitly specify the preference of using -pthread over -lpthread.
+include(Open3DMakeHardeningFlags)
+open3d_make_hardening_flags(HARDENING_CFLAGS HARDENING_LDFLAGS)
+open3d_make_hardening_definitions(HARDENING_DEFINITIONS)
+
+message(STATUS "Using security hardening compiler flags: ${HARDENING_CFLAGS}")
+message(STATUS "Using security hardening linker flags: ${HARDENING_LDFLAGS}")
+message(STATUS "Using security hardening compiler definitions: ${HARDENING_DEFINITIONS}")
+
+add_compile_options("${HARDENING_CFLAGS}")
+if(NOT IOS)
+add_link_options("${HARDENING_LDFLAGS}")
+endif()
+add_compile_definitions("${HARDENING_DEFINITIONS}")
+
+# Explicitly specifiy the preference of using -pthread over -lpthread.
 # This must be defined here since CUDA calls find_package(Threads) internally.
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 

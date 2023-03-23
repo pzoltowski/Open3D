@@ -6,7 +6,7 @@ include(ExternalProject)
 
 
 # select ISAs
-if(APPLE)
+if(APPLE AND NOT IOS)
     if(APPLE_AARCH64)
         # Turn off ISA optimizations for Apple ARM64 for now.
         set(ISA_ARGS -DEMBREE_ISA_AVX=OFF
@@ -26,7 +26,7 @@ if(APPLE)
         set(ISA_LIBS embree_sse42)
         set(ISA_BUILD_BYPRODUCTS "<INSTALL_DIR>/${Open3D_INSTALL_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}embree_sse42${CMAKE_STATIC_LIBRARY_SUFFIX}" )
     endif()
-elseif(LINUX_AARCH64)
+elseif(LINUX_AARCH64 OR IOS)
     set(ISA_ARGS -DEMBREE_ISA_AVX=OFF
                  -DEMBREE_ISA_AVX2=OFF
                  -DEMBREE_ISA_AVX512=OFF
@@ -66,6 +66,8 @@ else()
 endif()
 
 
+find_package(Git QUIET REQUIRED)
+
 ExternalProject_Add(
     ext_embree
     PREFIX embree
@@ -73,9 +75,13 @@ ExternalProject_Add(
     URL_HASH SHA256=74ec785afb8f14d28ea5e0773544572c8df2e899caccdfc88509f1bfff58716f
     DOWNLOAD_DIR "${OPEN3D_THIRD_PARTY_DOWNLOAD_DIR}/embree"
     UPDATE_COMMAND ""
+    PATCH_COMMAND ${GIT_EXECUTABLE} init
+    COMMAND ${GIT_EXECUTABLE} apply --ignore-space-change --ignore-whitespace
+        ${CMAKE_CURRENT_LIST_DIR}/0001-fix-for-iOS.patch
     CMAKE_ARGS
         ${ExternalProject_CMAKE_ARGS_hidden}
         -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         ${ISA_ARGS}
         -DEMBREE_ISPC_SUPPORT=OFF
         -DEMBREE_TUTORIALS=OFF

@@ -1,0 +1,25 @@
+From bb49faad1dabc682b323deba429247e7f813e566 Mon Sep 17 00:00:00 2001
+From: Changbeom Ahn <kewlbear@gmail.com>
+Date: Fri, 26 Feb 2021 13:40:52 +0900
+Subject: [PATCH] fix for iOS
+
+---
+ tools/pybind11Tools.cmake | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/pybind11Tools.cmake b/tools/pybind11Tools.cmake
+index 508e474..12c6a9c 100644
+--- a/tools/pybind11Tools.cmake
++++ b/tools/pybind11Tools.cmake
+@@ -120,7 +120,7 @@ function(pybind11_add_module target_name)
+     message(FATAL_ERROR "Can't be both MODULE and SHARED")
+   elseif(ARG_SHARED)
+     set(lib_type SHARED)
+-  else()
++  elseif(NOT IOS)
+     set(lib_type MODULE)
+   endif()
+ 
+-- 
+2.24.3 (Apple Git-128)
+
