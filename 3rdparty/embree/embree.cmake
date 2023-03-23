@@ -71,8 +71,10 @@ find_package(Git QUIET REQUIRED)
 ExternalProject_Add(
     ext_embree
     PREFIX embree
-    URL https://github.com/embree/embree/archive/refs/tags/v3.13.3.tar.gz
-    URL_HASH SHA256=74ec785afb8f14d28ea5e0773544572c8df2e899caccdfc88509f1bfff58716f
+    URL https://github.com/embree/embree/archive/refs/tags/v3.13.0.tar.gz
+    URL_HASH SHA256=4d86a69508a7e2eb8710d571096ad024b5174834b84454a8020d3a910af46f4f
+    # URL https://github.com/embree/embree/archive/refs/tags/v3.13.3.tar.gz
+    # URL_HASH SHA256=74ec785afb8f14d28ea5e0773544572c8df2e899caccdfc88509f1bfff58716f
     DOWNLOAD_DIR "${OPEN3D_THIRD_PARTY_DOWNLOAD_DIR}/embree"
     UPDATE_COMMAND ""
     PATCH_COMMAND ${GIT_EXECUTABLE} init
