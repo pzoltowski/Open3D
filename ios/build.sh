@@ -33,26 +33,26 @@ cd -
 # JPEG
 
 xcodebuild -project build/turbojpeg/src/ext_turbojpeg-build/libjpeg-turbo.xcodeproj -target turbojpeg-static -configuration Release -sdk iphoneos -xcconfig $XCCONFIG
-xcodebuild -project build/turbojpeg/src/ext_turbojpeg-build/libjpeg-turbo.xcodeproj -target turbojpeg-static -configuration Release -sdk iphonesimulator -xcconfig $XCCONFIG
+# xcodebuild -project build/turbojpeg/src/ext_turbojpeg-build/libjpeg-turbo.xcodeproj -target turbojpeg-static -configuration Release -sdk iphonesimulator -xcconfig $XCCONFIG
 
 rm -rf build/turbojpeg/src/ext_turbojpeg-build/JPEG.xcframework
 
 xcodebuild -create-xcframework \
   -library build/turbojpeg/src/ext_turbojpeg-build/Release-iphoneos/libturbojpeg.a \
-  -library build/turbojpeg/src/ext_turbojpeg-build/Release-iphonesimulator/libturbojpeg.a \
+#   -library build/turbojpeg/src/ext_turbojpeg-build/Release-iphonesimulator/libturbojpeg.a \
   -output build/turbojpeg/src/ext_turbojpeg-build/JPEG.xcframework
 
 
 # png
 
 xcodebuild -project build/libpng/src/ext_libpng-build/libpng.xcodeproj -target png_static -configuration Release -sdk iphoneos -xcconfig $XCCONFIG
-xcodebuild -project build/libpng/src/ext_libpng-build/libpng.xcodeproj -target png_static -configuration Release -sdk iphonesimulator -xcconfig $XCCONFIG
+# xcodebuild -project build/libpng/src/ext_libpng-build/libpng.xcodeproj -target png_static -configuration Release -sdk iphonesimulator -xcconfig $XCCONFIG
 
 rm -rf build/libpng/src/ext_libpng-build/png.xcframework
 
 xcodebuild -create-xcframework \
   -library build/libpng/src/ext_libpng-build/Release-iphoneos/libpng16.a \
-  -library build/libpng/src/ext_libpng-build/Release-iphonesimulator/libpng16.a \
+#   -library build/libpng/src/ext_libpng-build/Release-iphonesimulator/libpng16.a \
   -output build/libpng/src/ext_libpng-build/png.xcframework
 
 
@@ -89,13 +89,13 @@ xcodebuild -create-xcframework \
 # TBB
 
 xcodebuild -project build/tbb/src/ext_tbb-build/tbb.xcodeproj -target tbb_static -configuration Release -sdk iphoneos -xcconfig $XCCONFIG
-xcodebuild -project build/tbb/src/ext_tbb-build/tbb.xcodeproj -target tbb_static -configuration Release -sdk iphonesimulator -xcconfig $XCCONFIG
+# xcodebuild -project build/tbb/src/ext_tbb-build/tbb.xcodeproj -target tbb_static -configuration Release -sdk iphonesimulator -xcconfig $XCCONFIG
 
 rm -rf build/tbb/src/ext_tbb-build/TBB.xcframework
 
 xcodebuild -create-xcframework \
   -library build/tbb/src/ext_tbb-build/Release-iphoneos/libtbb_static.a \
-  -library build/tbb/src/ext_tbb-build/Release-iphonesimulator/libtbb_static.a \
+#   -library build/tbb/src/ext_tbb-build/Release-iphonesimulator/libtbb_static.a \
   -output build/tbb/src/ext_tbb-build/TBB.xcframework
 
 
