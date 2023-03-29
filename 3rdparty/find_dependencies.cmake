@@ -828,6 +828,7 @@ if (BUILD_LIBREALSENSE)
     endif()
 endif()
 
+if (NOT IOS)
 # Curl
 # - Curl should be linked before PNG, otherwise it will have undefined symbols.
 # - openssl.cmake needs to be included before curl.cmake, for the
@@ -886,6 +887,7 @@ if(NOT USE_SYSTEM_CURL)
     target_link_libraries(3rdparty_curl INTERFACE 3rdparty_openssl)
 endif()
 list(APPEND Open3D_3RDPARTY_PRIVATE_TARGETS_FROM_CUSTOM Open3D::3rdparty_curl)
+endif()
 
 # PNG
 if(USE_SYSTEM_PNG)
